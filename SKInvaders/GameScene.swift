@@ -71,6 +71,9 @@ class GameScene: SKScene {
     setupShip()
     setupHud()
     
+    
+    
+    
     // black space color
     self.backgroundColor = SKColor.black
   }
