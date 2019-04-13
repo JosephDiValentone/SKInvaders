@@ -28,6 +28,27 @@ class GameScene: SKScene {
   // Private GameScene Properties
   
   var contentCreated = false
+    var invaderMovementDirection: InvaderMovementDirection = .right
+    var timeOfLastMove: CFTimeInterval = 0.0
+    
+    let timePerMove: CFTimeInterval = 1.0
+    let motionManager = CMMotionManager()
+    
+    enum InvaderMovementDirection{
+        case right
+        case left
+        case downThenRight
+        case downThenLeft
+        case none
+        
+       
+    }
+    
+    
+    
+    
+    
+    
     enum InvaderType{
         case a
         case b
@@ -60,13 +81,14 @@ class GameScene: SKScene {
     if (!self.contentCreated) {
       self.createContent()
       self.contentCreated = true
+        motionManager.startAccelerometerUpdates()
     }
   }
   
   func createContent() {
     
     let invader = SKSpriteNode(imageNamed: "InvaderA_00.png")
-    
+    physicsBody = SKPhysicsBody(edgeLoopFrom: frame)
     setupInvaders()
     setupShip()
     setupHud()
@@ -140,6 +162,10 @@ class GameScene: SKScene {
     func makeShip() -> SKNode{
         let ship = SKSpriteNode(color: SKColor.green, size: kShipSize)
         ship.name = kShipName
+        ship.physicsBody = SKPhysicsBody(rectangleOf: ship.frame.size)
+        ship.physicsBody!.isDynamic = true
+        ship.physicsBody!.affectedByGravity = false
+        ship.physicsBody!.mass = 0.02
         return ship
     }
     
@@ -180,14 +206,105 @@ class GameScene: SKScene {
     
   
   // Scene Update
+    func moveInvaders(forUpdate currentTime: CFTimeInterval) {
+        // 1
+        if (currentTime - timeOfLastMove < timePerMove) {
+            return
+        }
+        
+        // 2
+        enumerateChildNodes(withName: InvaderType.name) { node, stop in
+            switch self.invaderMovementDirection {
+            case .right:
+                node.position = CGPoint(x: node.position.x + 10, y: node.position.y)
+            case .left:
+                node.position = CGPoint(x: node.position.x - 10, y: node.position.y)
+            case .downThenLeft, .downThenRight:
+                node.position = CGPoint(x: node.position.x, y: node.position.y - 10)
+            case .none:
+                break
+            }
+            
+            // 3
+            self.timeOfLastMove = currentTime
+            self.determineInvaderMovementDirection()
+        }
+    }
+    
+    func processUserMotion(forUpdate currentTime: CFTimeInterval) {
+        // 1
+        if let ship = childNode(withName: kShipName) as? SKSpriteNode {
+            // 2
+            if let data = motionManager.accelerometerData {
+                // 3
+                if fabs(data.acceleration.x) > 0.2 {
+                    // 4 How do you move the ship?\
+                    ship.physicsBody!.applyForce(CGVector(dx: 40 * CGFloat(data.acceleration.x), dy: 0))
+                    //print("Acceleration: \(data.acceleration.x)")
+                }
+            }
+        }
+    }
+    
+    
   
   override func update(_ currentTime: TimeInterval) {
     /* Called before each frame is rendered */
+    processUserMotion(forUpdate: currentTime)
+    moveInvaders(forUpdate: currentTime)
+
   }
   
   // Scene Update Helpers
+   
   
   // Invader Movement Helpers
+    
+    func determineInvaderMovementDirection() {
+        
+        var proposedMovementDirection: InvaderMovementDirection = invaderMovementDirection
+        
+        enumerateChildNodes(withName: InvaderType.name) { node, stop in
+            
+            switch self.invaderMovementDirection {
+            case .right:
+                //3
+                if (node.frame.maxX >= node.scene!.size.width - 1.0) {
+                    proposedMovementDirection = .downThenLeft
+                    
+                    stop.pointee = true
+                }
+            case .left:
+                //4
+                if (node.frame.minX <= 1.0) {
+                    proposedMovementDirection = .downThenRight
+                    
+                    stop.pointee = true
+                }
+                
+            case .downThenLeft:
+                proposedMovementDirection = .left
+                
+                stop.pointee = true
+                
+            case .downThenRight:
+                proposedMovementDirection = .right
+                
+                stop.pointee = true
+                
+            default:
+                break
+            }
+            
+        }
+        
+        //7
+        if (proposedMovementDirection != invaderMovementDirection) {
+            invaderMovementDirection = proposedMovementDirection
+        }
+    }
+    
+    
   
   // Bullet Helpers
   
