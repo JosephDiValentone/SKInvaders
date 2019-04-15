@@ -40,7 +40,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
     let motionManager = CMMotionManager()
     let kShipFiredBulletName = "shipFiredBullet"
     let kInvaderFiredBulletName = "invaderFiredBullet"
-    let kBulletSize = CGSize(width:4, height: 8)
+    let kBulletSize = CGSize(width:4, height: 12)
+    let kInvaderBullet = CGSize(width: 2, height: 4)
     let kInvaderCategory: UInt32 = 0x1 << 0
     let kShipFiredBulletCategory: UInt32 = 0x1 << 1
     let kShipCategory: UInt32 = 0x1 << 2
@@ -79,9 +80,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
     }
     
     
-    let kInvaderGridSpacing = CGSize(width: 12, height: 12)
-    let kInvaderRowCount = 6
-    let kInvaderColCount = 6
+    let kInvaderGridSpacing = CGSize(width: 10, height: 10)
+    let kInvaderRowCount = 5
+    let kInvaderColCount = 5
     
     let kShipSize = CGSize(width: 30, height: 16)
     let kShipName = "ship"
@@ -264,7 +265,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
         
         switch bulletType {
         case .shipFired:
-            bullet = SKSpriteNode(color: SKColor.green, size: kBulletSize)
+            bullet = SKSpriteNode(color: SKColor.green, size: kBulletSize )
             
             bullet.name = kShipFiredBulletName
             bullet.physicsBody = SKPhysicsBody(rectangleOf: bullet.frame.size)
@@ -274,7 +275,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
             bullet.physicsBody!.contactTestBitMask = kInvaderCategory
             bullet.physicsBody!.collisionBitMask = 0x0
         case .invaderFired:
-            bullet = SKSpriteNode(color: SKColor.magenta, size: kBulletSize)
+            bullet = SKSpriteNode(color: SKColor.magenta, size: kInvaderBullet)
             
             bullet.name = kInvaderFiredBulletName
             bullet.physicsBody = SKPhysicsBody(rectangleOf: bullet.frame.size)
@@ -404,6 +405,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
         for tapCount in tapQueue{
             if tapCount == 1 {
                 fireShipBullets()
+                fireShipBullets2()
             }
             tapQueue.remove(at: 0)
         }
@@ -421,7 +423,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
             switch self.invaderMovementDirection {
             case .right:
                 //3
-                if (node.frame.maxX >= node.scene!.size.width - 1.0) {
+                if (node.frame.maxX >= node.scene!.size.width - 40.0) {
                     proposedMovementDirection = .downThenLeft
                     
                     self.adjustInvaderMovement(to: self.timePerMove * 0.8)
@@ -430,7 +432,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
                 }
             case .left:
                 //4
-                if (node.frame.minX <= 1.0) {
+                if (node.frame.minX <= 40.0) {
                     proposedMovementDirection = .downThenRight
                     
                     self.adjustInvaderMovement(to: self.timePerMove * 0.8)
@@ -474,6 +476,22 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
         addChild(bullet)
     }
     
+    
+    func fireBullet2(bullet2: SKNode, toDestination destination: CGPoint, withDuration duration: CFTimeInterval, andSoundFileName soundName: String) {
+        let bulletAction = SKAction.sequence([
+            SKAction.move(to: destination, duration: duration),
+            SKAction.wait(forDuration: 3.0 / 60.0),
+            SKAction.removeFromParent()
+            ])
+        let soundAction = SKAction.playSoundFileNamed(soundName, waitForCompletion: true)
+        bullet2.run(SKAction.group([bulletAction, soundAction]))
+        addChild(bullet2)
+    }
+    
+    
+    
+    
+    
     func fireShipBullets() {
         let existingBullet = childNode(withName: kShipFiredBulletName)
         
@@ -481,22 +499,62 @@ class GameScene: SKScene, SKPhysicsContactDelegate{
             if let ship = childNode(withName: kShipName) {
                 let bullet = makeBullet(ofType: .shipFired)
                 bullet.position = CGPoint(
-                    x: ship.position.x,
+                    x: ship.position.x+10,
                     y: ship.position.y + ship.frame.size.height - bullet.frame.size.height / 2
                 )
                 let bulletDestination = CGPoint(
-                    x: ship.position.x,
+                    x: ship.position.x+10,
                     y: frame.size.height + bullet.frame.size.height / 2
                 )
+                //let bulletDest2 = CGPoint(x: ship.position.x - 2, y: frame.size.height + bullet.frame.size.height/2)
+                
                 fireBullet(
                     bullet: bullet,
                     toDestination: bulletDestination,
-                    withDuration: 1.0,
+                    withDuration: 0.8,
                     andSoundFileName: "ShipBullet.wav"
                 )
+                
+                
             }
         }
     }
+    
+    
+    
+    
+    func fireShipBullets2() {
+        let existingBullet = childNode(withName: kShipFiredBulletName)
+        
+        if existingBullet == nil {
+            if let ship = childNode(withName: kShipName) {
+                let bullet2 = makeBullet(ofType: .shipFired)
+                bullet2.position = CGPoint(
+                    x: ship.position.x-10,
+                    y: ship.position.y + ship.frame.size.height - bullet2.frame.size.height / 2
+                )
+                let bulletDestination = CGPoint(
+                    x: ship.position.x-10,
+                    y: frame.size.height + bullet2.frame.size.height / 2
+                )
+                //let bulletDest2 = CGPoint(x: ship.position.x - 2, y: frame.size.height + bullet.frame.size.height/2)
+                
+                fireBullet2(
+                    bullet2: bullet2,
+                    toDestination: bulletDestination,
+                    withDuration: 0.8,
+                    andSoundFileName: "ShipBullet.wav"
+                )
+                
+                
+            }
+        }
+    }
+    
+    
+    
+    
+    
 
   // User Tap Helpers
     
